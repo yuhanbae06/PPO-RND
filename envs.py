@@ -2,13 +2,15 @@ import gym
 import cv2
 
 import numpy as np
+if not hasattr(np, 'bool8'):
+    np.bool8 = np.bool_
 
 from abc import abstractmethod
 from collections import deque
 from copy import copy
 
 import gym_super_mario_bros
-from nes_py.wrappers import BinarySpaceToDiscreteSpaceEnv
+from nes_py.wrappers import JoypadSpace as BinarySpaceToDiscreteSpaceEnv
 from gym_super_mario_bros.actions import SIMPLE_MOVEMENT, COMPLEX_MOVEMENT
 
 from torch.multiprocessing import Pipe, Process
@@ -64,7 +66,12 @@ class MaxAndSkipEnv(gym.Wrapper):
         total_reward = 0.0
         done = None
         for i in range(self._skip):
-            obs, reward, done, info = self.env.step(action)
+            result = self.env.step(action)
+            if len(result) == 5:
+                obs, reward, terminated, truncated, info = result
+                done = terminated or truncated
+            else:
+                obs, reward, done, info = result
             if self.is_render:
                 self.env.render()
             if i == self._skip - 2:
@@ -96,7 +103,12 @@ class MontezumaInfoWrapper(gym.Wrapper):
         return int(ram[self.room_address])
 
     def step(self, action):
-        obs, rew, done, info = self.env.step(action)
+        result = self.env.step(action)
+        if len(result) == 5:
+            obs, reward, terminated, truncated, info = result
+            done = terminated or truncated
+        else:
+            obs, reward, done, info = result
         self.visited_rooms.add(self.get_current_room())
 
         if 'episode' not in info:
@@ -163,7 +175,12 @@ class AtariEnvironment(Environment):
                     action = self.last_action
                 self.last_action = action
 
-            s, reward, done, info = self.env.step(action)
+            result = self.env.step(action)
+            if len(result) == 5:
+                s, reward, terminated, truncated, info = result
+                done = terminated or truncated
+            else:
+                s, reward, done, info = result
 
             if max_step_per_episode < self.steps:
                 done = True
@@ -193,7 +210,11 @@ class AtariEnvironment(Environment):
         self.steps = 0
         self.episode += 1
         self.rall = 0
-        s = self.env.reset()
+        reset_ret = self.env.reset()
+        if isinstance(reset_ret, tuple):
+            s = reset_ret[0]
+        else:
+            s = reset_ret
         self.get_init_state(
             self.pre_proc(s))
         return self.history[:, :, :]
@@ -262,7 +283,12 @@ class MarioEnvironment(Process):
             reward = 0.0
             done = None
             for i in range(4):
-                obs, r, done, info = self.env.step(action)
+                result = self.env.step(action)
+                if len(result) == 5:
+                    obs, r, terminated, truncated, info = result
+                    done = terminated or truncated
+                else:
+                    obs, r, done, info = result
                 if self.is_render:
                     self.env.render()
                 reward += r
@@ -318,7 +344,12 @@ class MarioEnvironment(Process):
         self.lives = 3
         self.stage = 1
         self.max_pos = 0
-        self.get_init_state(self.env.reset())
+        reset_ret = self.env.reset()
+        if isinstance(reset_ret, tuple):
+            init_obs = reset_ret[0]
+        else:
+            init_obs = reset_ret
+        self.get_init_state(init_obs)
         return self.history[:, :, :]
 
     def pre_proc(self, X):
