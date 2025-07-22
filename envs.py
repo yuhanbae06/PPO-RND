@@ -103,12 +103,7 @@ class MontezumaInfoWrapper(gym.Wrapper):
         return int(ram[self.room_address])
 
     def step(self, action):
-        result = self.env.step(action)
-        if len(result) == 5:
-            obs, reward, terminated, truncated, info = result
-            done = terminated or truncated
-        else:
-            obs, reward, done, info = result
+        obs, rew, done, info = self.env.step(action)
         self.visited_rooms.add(self.get_current_room())
 
         if 'episode' not in info:
@@ -283,12 +278,7 @@ class MarioEnvironment(Process):
             reward = 0.0
             done = None
             for i in range(4):
-                result = self.env.step(action)
-                if len(result) == 5:
-                    obs, r, terminated, truncated, info = result
-                    done = terminated or truncated
-                else:
-                    obs, r, done, info = result
+                obs, r, done, info = self.env.step(action)
                 if self.is_render:
                     self.env.render()
                 reward += r
