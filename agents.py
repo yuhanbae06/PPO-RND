@@ -29,7 +29,9 @@ class RNDAgent(object):
             update_proportion=0.25,
             use_gae=True,
             use_cuda=False,
-            use_noisy_net=False):
+            use_noisy_net=False,
+            use_pred_cnn=True,
+            use_tar_cnn=True):
         self.model = CnnActorCriticNetwork(input_size, output_size, use_noisy_net)
         self.num_env = num_env
         self.output_size = output_size
@@ -46,7 +48,7 @@ class RNDAgent(object):
         self.update_proportion = update_proportion
         self.device = torch.device('cuda' if use_cuda else 'cpu')
 
-        self.rnd = RNDModel(input_size, output_size)
+        self.rnd = RNDModel(input_size, output_size, use_pred_cnn, use_tar_cnn)
         self.optimizer = optim.Adam(list(self.model.parameters()) + list(self.rnd.predictor.parameters()),
                                     lr=learning_rate)
         self.rnd = self.rnd.to(self.device)

@@ -159,62 +159,78 @@ class CnnActorCriticNetwork(nn.Module):
 
 
 class RNDModel(nn.Module):
-    def __init__(self, input_size, output_size):
+    def __init__(self, input_size, output_size, pred_CNN, tar_CNN):
         super(RNDModel, self).__init__()
 
         self.input_size = input_size
         self.output_size = output_size
 
         feature_output = 7 * 7 * 64
-        self.predictor = nn.Sequential(
-            nn.Conv2d(
-                in_channels=1,
-                out_channels=32,
-                kernel_size=8,
-                stride=4),
-            nn.LeakyReLU(),
-            nn.Conv2d(
-                in_channels=32,
-                out_channels=64,
-                kernel_size=4,
-                stride=2),
-            nn.LeakyReLU(),
-            nn.Conv2d(
-                in_channels=64,
-                out_channels=64,
-                kernel_size=3,
-                stride=1),
-            nn.LeakyReLU(),
-            Flatten(),
-            nn.Linear(feature_output, 512),
-            nn.ReLU(),
-            nn.Linear(512, 512),
-            nn.ReLU(),
-            nn.Linear(512, 512)
-        )
+        if pred_CNN:
+            self.predictor = nn.Sequential(
+                nn.Conv2d(
+                    in_channels=1,
+                    out_channels=32,
+                    kernel_size=8,
+                    stride=4),
+                nn.LeakyReLU(),
+                nn.Conv2d(
+                    in_channels=32,
+                    out_channels=64,
+                    kernel_size=4,
+                    stride=2),
+                nn.LeakyReLU(),
+                nn.Conv2d(
+                    in_channels=64,
+                    out_channels=64,
+                    kernel_size=3,
+                    stride=1),
+                nn.LeakyReLU(),
+                Flatten(),
+                nn.Linear(feature_output, 512),
+                nn.ReLU(),
+                nn.Linear(512, 512),
+                nn.ReLU(),
+                nn.Linear(512, 512)
+            )
+        else:
+            self.predictor = nn.Sequential(
+                Flatten(),
+                nn.Linear(self.input_size[0] * self.input_size[1] * self.input_size[2], 22),
+                nn.ReLU(),
+                nn.Linear(22, 512)
+            )
 
-        self.target = nn.Sequential(
-            nn.Conv2d(
-                in_channels=1,
-                out_channels=32,
-                kernel_size=8,
-                stride=4),
-            nn.LeakyReLU(),
-            nn.Conv2d(
-                in_channels=32,
-                out_channels=64,
-                kernel_size=4,
-                stride=2),
-            nn.LeakyReLU(),
-            nn.Conv2d(
-                in_channels=64,
-                out_channels=64,
-                kernel_size=3,
-                stride=1),
-            nn.LeakyReLU(),
-            Flatten(),
-            nn.Linear(feature_output, 512)
-        )
+        if tar_CNN:
+            self.target = nn.Sequential(
+                nn.Conv2d(
+                    in_channels=1,
+                    out_channels=32,
+                    kernel_size=8,
+                    stride=4),
+                nn.LeakyReLU(),
+                nn.Conv2d(
+                    in_channels=32,
+                    out_channels=64,
+                    kernel_size=4,
+                    stride=2),
+                nn.LeakyReLU(),
+                nn.Conv2d(
+                    in_channels=64,
+                    out_channels=64,
+                    kernel_size=3,
+                    stride=1),
+                nn.LeakyReLU(),
+                Flatten(),
+                nn.Linear(feature_output, 512)
+            )
+        else:
+            self.target == nn.Sequential(
+                Flatten(),
+                nn.Linear(self.input_size[0] * self.input_size[1] * self.input_size[2], 22),
+                nn.ReLU(),
+                nn.Linear(22, 512)
+            )
 
         for p in self.modules():
             if isinstance(p, nn.Conv2d):

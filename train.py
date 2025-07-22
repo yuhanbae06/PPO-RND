@@ -29,13 +29,20 @@ def main():
 
     env.close()
 
-    is_load_model = True
+    is_load_model = False
     is_render = False
-    model_path = 'models/{}.model'.format(env_id)
-    predictor_path = 'models/{}.pred'.format(env_id)
-    target_path = 'models/{}.target'.format(env_id)
 
-    writer = SummaryWriter()
+    use_pred_cnn = default_config.getboolean('UsePredCNN')
+    use_tar_cnn = default_config.getboolean('UseTarCNN')
+    use_pred_cnn_str = 'CNN' if use_pred_cnn else 'DNN'
+    use_tar_cnn_str = 'CNN' if use_tar_cnn else 'DNN'
+
+
+    model_path = 'models/{}.model'.format(env_id+use_pred_cnn_str+use_tar_cnn_str)
+    predictor_path = 'models/{}.pred'.format(env_id+use_pred_cnn_str+use_tar_cnn_str)
+    target_path = 'models/{}.target'.format(env_id+use_pred_cnn_str+use_tar_cnn_str)
+
+    writer = SummaryWriter('./runs/{}'.format(use_pred_cnn_str+use_tar_cnn_str))
 
     use_cuda = default_config.getboolean('UseGPU')
     use_gae = default_config.getboolean('UseGAE')
@@ -67,6 +74,8 @@ def main():
     pre_obs_norm_step = int(default_config['ObsNormStep'])
     discounted_reward = RewardForwardFilter(int_gamma)
 
+    max_update = int(default_config['MaxUpdate'])
+
     agent = RNDAgent
 
     if default_config['EnvType'] == 'atari':
@@ -91,7 +100,9 @@ def main():
         ppo_eps=ppo_eps,
         use_cuda=use_cuda,
         use_gae=use_gae,
-        use_noisy_net=use_noisy_net
+        use_noisy_net=use_noisy_net,
+        use_pred_cnn=use_pred_cnn,
+        use_tar_cnn=use_tar_cnn
     )
 
     if is_load_model:
@@ -275,6 +286,9 @@ def main():
             torch.save(agent.model.state_dict(), model_path)
             torch.save(agent.rnd.predictor.state_dict(), predictor_path)
             torch.save(agent.rnd.target.state_dict(), target_path)
+        
+        if global_update >= max_update:
+            break
 
 
 if __name__ == '__main__':
