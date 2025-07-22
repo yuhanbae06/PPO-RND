@@ -225,7 +225,7 @@ class RNDModel(nn.Module):
                 nn.Linear(feature_output, 512)
             )
         else:
-            self.target == nn.Sequential(
+            self.target = nn.Sequential(
                 Flatten(),
                 nn.Linear(self.input_size[0] * self.input_size[1] * self.input_size[2], 22),
                 nn.ReLU(),
