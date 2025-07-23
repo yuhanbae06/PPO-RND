@@ -80,7 +80,7 @@ def main():
 
     max_update = int(default_config['MaxUpdate'])
     ENV_SEED = int(default_config['EnvSeed'])
-    ALPHA = int(default_config['Alpha'])
+    ALPHA = float(default_config['Alpha'])
 
     agent = RNDAgent
 
