@@ -368,7 +368,8 @@ class MiniGridEnvironment(Environment):
             c=3,
             life_done=True,
             sticky_action=True,
-            p=0.25):
+            p=0.25,
+            env_seed=42):
         super(MiniGridEnvironment, self).__init__()
         self.daemon = True
         self.env = ImgObsWrapper(gym.make(env_id))
@@ -389,7 +390,8 @@ class MiniGridEnvironment(Environment):
         self.history = np.zeros([history_size, h, w, c])
         self.h = h
         self.w = w
-        self.h = c
+        self.c = c
+        self.env_seed = env_seed
 
         self.reset()
 
@@ -439,7 +441,10 @@ class MiniGridEnvironment(Environment):
         self.steps = 0
         self.episode += 1
         self.rall = 0
-        reset_ret = self.env.reset()
+        if self.env_seed == -1:
+            reset_ret = self.env.reset()
+        else:
+            reset_ret = self.env.reset(seed=self.env_seed)
         if isinstance(reset_ret, tuple):
             s = reset_ret[0]
         else:

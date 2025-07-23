@@ -79,6 +79,7 @@ def main():
     discounted_reward = RewardForwardFilter(int_gamma)
 
     max_update = int(default_config['MaxUpdate'])
+    ENV_SEED = int(default_config['EnvSeed'])
 
     agent = RNDAgent
 
@@ -129,7 +130,7 @@ def main():
     for idx in range(num_worker):
         parent_conn, child_conn = Pipe()
         work = env_type(env_id, is_render, idx, child_conn, sticky_action=sticky_action, p=action_prob,
-                        life_done=life_done)
+                        life_done=life_done, env_seed=ENV_SEED)
         work.start()
         works.append(work)
         parent_conns.append(parent_conn)
@@ -172,7 +173,7 @@ def main():
 
         # Step 1. n-step rollout
         for _ in range(num_step):
-            actions, value_ext, value_int, policy = agent.get_action(np.float32(states) / 255.)
+            actions, value_ext, value_int, policy = agent.get_action(np.float32(states) / 10.)
 
             for parent_conn, action in zip(parent_conns, actions):
                 parent_conn.send(action)
@@ -225,7 +226,7 @@ def main():
                 sample_i_rall = 0
 
         # calculate last next value
-        _, value_ext, value_int, _ = agent.get_action(np.float32(states) / 255.)
+        _, value_ext, value_int, _ = agent.get_action(np.float32(states) / 10.)
         total_ext_values.append(value_ext)
         total_int_values.append(value_int)
         # --------------------------------------------------
@@ -283,7 +284,7 @@ def main():
         # -----------------------------------------------
 
         # Step 5. Training!
-        agent.train_model(np.float32(total_state) / 255., ext_target, int_target, total_action,
+        agent.train_model(np.float32(total_state) / 10., ext_target, int_target, total_action,
                           total_adv, ((total_next_obs - obs_rms.mean) / np.sqrt(obs_rms.var)).clip(-5, 5),
                           total_policy)
 

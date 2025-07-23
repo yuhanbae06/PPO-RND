@@ -100,12 +100,7 @@ class CnnActorCriticNetwork(nn.Module):
             Flatten(),
             linear(
                 4 * 4 * 64,
-                256),
-            nn.ReLU(),
-            linear(
-                256,
-                448),
-            nn.ReLU()
+                448)
         )
 
         self.actor = nn.Sequential(

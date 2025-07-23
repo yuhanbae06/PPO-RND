@@ -30,9 +30,15 @@ def main():
     env.close()
 
     is_render = True
-    model_path = 'models/{}.model'.format(env_id)
-    predictor_path = 'models/{}.pred'.format(env_id)
-    target_path = 'models/{}.target'.format(env_id)
+
+    use_pred_cnn = default_config.getboolean('UsePredCNN')
+    use_tar_cnn = default_config.getboolean('UseTarCNN')
+    use_pred_cnn_str = 'CNN' if use_pred_cnn else 'DNN'
+    use_tar_cnn_str = 'CNN' if use_tar_cnn else 'DNN'
+
+    model_path = 'models/{}.model'.format(env_id+use_pred_cnn_str+use_tar_cnn_str)
+    predictor_path = 'models/{}.pred'.format(env_id+use_pred_cnn_str+use_tar_cnn_str)
+    target_path = 'models/{}.target'.format(env_id+use_pred_cnn_str+use_tar_cnn_str)
 
     use_cuda = False
     use_gae = default_config.getboolean('UseGAE')
@@ -55,6 +61,7 @@ def main():
     sticky_action = False
     action_prob = float(default_config['ActionProb'])
     life_done = default_config.getboolean('LifeDone')
+    ENV_SEED = int(default_config['EnvSeed'])
 
     agent = RNDAgent
 
@@ -62,6 +69,8 @@ def main():
         env_type = AtariEnvironment
     elif default_config['EnvType'] == 'mario':
         env_type = MarioEnvironment
+    elif default_config['EnvType'] == 'minigrid':
+        env_type = MiniGridEnvironment
     else:
         raise NotImplementedError
 
@@ -100,13 +109,13 @@ def main():
     for idx in range(num_worker):
         parent_conn, child_conn = Pipe()
         work = env_type(env_id, is_render, idx, child_conn, sticky_action=sticky_action, p=action_prob,
-                        life_done=life_done)
+                        life_done=life_done, env_seed=ENV_SEED)
         work.start()
         works.append(work)
         parent_conns.append(parent_conn)
         child_conns.append(child_conn)
 
-    states = np.zeros([num_worker, 4, 84, 84])
+    states = np.zeros([num_worker, 4, 7, 7, 3])
 
     steps = 0
     rall = 0
@@ -114,7 +123,7 @@ def main():
     intrinsic_reward_list = []
     while not rd:
         steps += 1
-        actions, value_ext, value_int, policy = agent.get_action(np.float32(states) / 255.)
+        actions, value_ext, value_int, policy = agent.get_action(np.float32(states) / 10.)
 
         for parent_conn, action in zip(parent_conns, actions):
             parent_conn.send(action)
@@ -123,8 +132,8 @@ def main():
         for parent_conn in parent_conns:
             s, r, d, rd, lr = parent_conn.recv()
             rall += r
-            next_states = s.reshape([1, 4, 84, 84])
-            next_obs = s[3, :, :].reshape([1, 1, 84, 84])
+            next_states = s.reshape([1, 4, 7, 7, 3])
+            next_obs = s[3, :, :].reshape([1, 1, 7, 7, 3])
 
         # total reward = int reward + ext Reward
         intrinsic_reward = agent.compute_intrinsic_reward(next_obs)
