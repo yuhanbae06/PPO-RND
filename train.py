@@ -80,6 +80,7 @@ def main():
 
     max_update = int(default_config['MaxUpdate'])
     ENV_SEED = int(default_config['EnvSeed'])
+    ALPHA = int(default_config['Alpha'])
 
     agent = RNDAgent
 
@@ -109,7 +110,8 @@ def main():
         use_gae=use_gae,
         use_noisy_net=use_noisy_net,
         use_pred_cnn=use_pred_cnn,
-        use_tar_cnn=use_tar_cnn
+        use_tar_cnn=use_tar_cnn,
+        alpha = ALPHA
     )
 
     if is_load_model:

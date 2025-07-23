@@ -31,7 +31,8 @@ class RNDAgent(object):
             use_cuda=False,
             use_noisy_net=False,
             use_pred_cnn=True,
-            use_tar_cnn=True):
+            use_tar_cnn=True,
+            alpha=1):
         self.model = CnnActorCriticNetwork(input_size, output_size, use_noisy_net)
         self.num_env = num_env
         self.output_size = output_size
@@ -44,6 +45,7 @@ class RNDAgent(object):
         self.use_gae = use_gae
         self.ent_coef = ent_coef
         self.ppo_eps = ppo_eps
+        self.alpha = alpha
         self.clip_grad_norm = clip_grad_norm
         self.update_proportion = update_proportion
         self.device = torch.device('cuda' if use_cuda else 'cpu')
@@ -74,8 +76,9 @@ class RNDAgent(object):
         next_obs = torch.FloatTensor(next_obs).permute(0, 1, 4, 2, 3).reshape(-1, 3, 7, 7).to(self.device)
 
         target_next_feature = self.rnd.target(next_obs)
-        predict_next_feature = self.rnd.predictor(next_obs)
+        predict_next_feature = self.alpha * self.rnd.predictor(next_obs)
         intrinsic_reward = (target_next_feature - predict_next_feature).pow(2).sum(1) / 2
+        intrinsic_reward /= self.alpha
 
         return intrinsic_reward.data.cpu().numpy()
 
@@ -107,7 +110,7 @@ class RNDAgent(object):
                 # for Curiosity-driven(Random Network Distillation)
                 predict_next_state_feature, target_next_state_feature = self.rnd(next_obs_batch[sample_idx])
 
-                forward_loss = forward_mse(predict_next_state_feature, target_next_state_feature.detach()).mean(-1)
+                forward_loss = forward_mse(self.alpha * predict_next_state_feature, target_next_state_feature.detach()).mean(-1)
                 # Proportion of exp used for predictor update
                 mask = torch.rand(len(forward_loss)).to(self.device)
                 mask = (mask < self.update_proportion).type(torch.FloatTensor).to(self.device)
