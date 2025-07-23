@@ -365,6 +365,7 @@ class MiniGridEnvironment(Environment):
             history_size=4,
             h=84,
             w=84,
+            c=3,
             life_done=True,
             sticky_action=True,
             p=0.25):
@@ -385,9 +386,10 @@ class MiniGridEnvironment(Environment):
         self.p = p
 
         self.history_size = history_size
-        self.history = np.zeros([history_size, h, w])
+        self.history = np.zeros([history_size, h, w, c])
         self.h = h
         self.w = w
+        self.h = c
 
         self.reset()
 
@@ -415,8 +417,8 @@ class MiniGridEnvironment(Environment):
             log_reward = reward
             force_done = done
 
-            self.history[:3, :, :] = self.history[1:, :, :]
-            self.history[3, :, :] = self.pre_proc(s)
+            self.history[:3, :, :, :] = self.history[1:, :, :, :]
+            self.history[3, :, :, :] = self.pre_proc(s)
 
             self.rall += reward
             self.steps += 1
@@ -430,7 +432,7 @@ class MiniGridEnvironment(Environment):
                 self.history = self.reset()
 
             self.child_conn.send(
-                [self.history[:, :, :], reward, force_done, done, log_reward])
+                [self.history[:, :, :, :], reward, force_done, done, log_reward])
 
     def reset(self):
         self.last_action = 0
@@ -444,12 +446,12 @@ class MiniGridEnvironment(Environment):
             s = reset_ret
         self.get_init_state(
             self.pre_proc(s))
-        return self.history[:, :, :]
+        return self.history[:, :, :, :]
 
     def pre_proc(self, X):
-        X = np.array(Image.fromarray(X).convert('L')).astype('float32')
+        X = np.array(Image.fromarray(X)).astype('float32')
         return X
 
     def get_init_state(self, s):
         for i in range(self.history_size):
-            self.history[i, :, :] = self.pre_proc(s)
+            self.history[i, :, :, :] = self.pre_proc(s)

@@ -83,7 +83,7 @@ class CnnActorCriticNetwork(nn.Module):
 
         self.feature = nn.Sequential(
             nn.Conv2d(
-                in_channels=4,
+                in_channels=12,
                 out_channels=32,
                 kernel_size=8,
                 stride=4),
@@ -169,7 +169,7 @@ class RNDModel(nn.Module):
         if pred_CNN:
             self.predictor = nn.Sequential(
                 nn.Conv2d(
-                    in_channels=1,
+                    in_channels=3,
                     out_channels=32,
                     kernel_size=8,
                     stride=4),
@@ -204,7 +204,7 @@ class RNDModel(nn.Module):
         if tar_CNN:
             self.target = nn.Sequential(
                 nn.Conv2d(
-                    in_channels=1,
+                    in_channels=3,
                     out_channels=32,
                     kernel_size=8,
                     stride=4),
