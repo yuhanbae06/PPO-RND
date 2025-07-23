@@ -371,7 +371,7 @@ class MiniGridEnvironment(Environment):
             p=0.25):
         super(MiniGridEnvironment, self).__init__()
         self.daemon = True
-        self.env = ImgObsWrapper(RGBImgPartialObsWrapper(gym.make(env_id), tile_size=12))
+        self.env = ImgObsWrapper(gym.make(env_id))
         self.env_id = env_id
         self.is_render = is_render
         self.env_idx = env_idx
