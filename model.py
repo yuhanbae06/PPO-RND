@@ -181,9 +181,11 @@ class RNDModel(nn.Module):
         else:
             self.predictor = nn.Sequential(
                 Flatten(),
-                nn.Linear(self.input_size[0] * self.input_size[1] * self.input_size[2], 22),
+                nn.Linear(self.input_size[0] * self.input_size[1] * self.input_size[2], 470),
                 nn.ReLU(),
-                nn.Linear(22, 512)
+                nn.Linear(470, 470),
+                nn.ReLU(),
+                nn.Linear(470, 512)
             )
 
         if tar_CNN:
@@ -209,9 +211,11 @@ class RNDModel(nn.Module):
         else:
             self.target = nn.Sequential(
                 Flatten(),
-                nn.Linear(self.input_size[0] * self.input_size[1] * self.input_size[2], 22),
+                nn.Linear(self.input_size[0] * self.input_size[1] * self.input_size[2], 470),
                 nn.ReLU(),
-                nn.Linear(22, 512)
+                nn.Linear(470, 470),
+                nn.ReLU(),
+                nn.Linear(470, 512)
             )
 
         for p in self.modules():
