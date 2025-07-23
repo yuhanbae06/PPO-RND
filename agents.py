@@ -56,7 +56,7 @@ class RNDAgent(object):
         self.model = self.model.to(self.device)
 
     def get_action(self, state):
-        state = torch.Tensor(state).permute(0, 1, 4, 2, 3).reshape(-1, 12, 84, 84).to(self.device)
+        state = torch.Tensor(state).permute(0, 1, 4, 2, 3).reshape(-1, 12, 7, 7).to(self.device)
         state = state.float()
         policy, value_ext, value_int = self.model(state)
         action_prob = F.softmax(policy, dim=-1).data.cpu().numpy()
@@ -71,7 +71,7 @@ class RNDAgent(object):
         return (p.cumsum(axis=axis) > r).argmax(axis=axis)
 
     def compute_intrinsic_reward(self, next_obs):
-        next_obs = torch.FloatTensor(next_obs).permute(0, 1, 4, 2, 3).reshape(-1, 3, 84, 84).to(self.device)
+        next_obs = torch.FloatTensor(next_obs).permute(0, 1, 4, 2, 3).reshape(-1, 3, 7, 7).to(self.device)
 
         target_next_feature = self.rnd.target(next_obs)
         predict_next_feature = self.rnd.predictor(next_obs)
@@ -80,12 +80,12 @@ class RNDAgent(object):
         return intrinsic_reward.data.cpu().numpy()
 
     def train_model(self, s_batch, target_ext_batch, target_int_batch, y_batch, adv_batch, next_obs_batch, old_policy):
-        s_batch = torch.FloatTensor(s_batch).permute(0, 1, 4, 2, 3).reshape(-1, 12, 84, 84).to(self.device)
+        s_batch = torch.FloatTensor(s_batch).permute(0, 1, 4, 2, 3).reshape(-1, 12, 7, 7).to(self.device)
         target_ext_batch = torch.FloatTensor(target_ext_batch).to(self.device)
         target_int_batch = torch.FloatTensor(target_int_batch).to(self.device)
         y_batch = torch.LongTensor(y_batch).to(self.device)
         adv_batch = torch.FloatTensor(adv_batch).to(self.device)
-        next_obs_batch = torch.FloatTensor(next_obs_batch).permute(0, 1, 4, 2, 3).reshape(-1, 3, 84, 84).to(self.device)
+        next_obs_batch = torch.FloatTensor(next_obs_batch).permute(0, 1, 4, 2, 3).reshape(-1, 3, 7, 7).to(self.device)
 
         sample_range = np.arange(len(s_batch))
         forward_mse = nn.MSELoss(reduction='none')

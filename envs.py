@@ -363,8 +363,8 @@ class MiniGridEnvironment(Environment):
             env_idx,
             child_conn,
             history_size=4,
-            h=84,
-            w=84,
+            h=7,
+            w=7,
             c=3,
             life_done=True,
             sticky_action=True,
@@ -444,13 +444,12 @@ class MiniGridEnvironment(Environment):
             s = reset_ret[0]
         else:
             s = reset_ret
-        self.get_init_state(
-            self.pre_proc(s))
+        self.get_init_state(s)
         return self.history[:, :, :, :]
 
     def pre_proc(self, X):
-        X = np.array(Image.fromarray(X)).astype('float32')
-        return X
+        x = np.array(Image.fromarray(X)).astype('float32')
+        return x
 
     def get_init_state(self, s):
         for i in range(self.history_size):

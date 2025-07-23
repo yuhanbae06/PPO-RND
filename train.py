@@ -22,7 +22,7 @@ def main():
         env = gym.make(env_id)
     elif env_type == 'minigrid':
         env = gym.make(env_id)
-        env = ImgObsWrapper(RGBImgPartialObsWrapper(env, tile_size=12))
+        env = ImgObsWrapper(env)
     else:
         raise NotImplementedError
     input_size = env.observation_space.shape  # 4
@@ -74,7 +74,7 @@ def main():
     life_done = default_config.getboolean('LifeDone')
 
     reward_rms = RunningMeanStd()
-    obs_rms = RunningMeanStd(shape=(1, 1, 84, 84, 3))
+    obs_rms = RunningMeanStd(shape=(1, 1, 7, 7, 3))
     pre_obs_norm_step = int(default_config['ObsNormStep'])
     discounted_reward = RewardForwardFilter(int_gamma)
 
@@ -135,7 +135,7 @@ def main():
         parent_conns.append(parent_conn)
         child_conns.append(child_conn)
 
-    states = np.zeros([num_worker, 4, 84, 84, 3])
+    states = np.zeros([num_worker, 4, 7, 7, 3])
 
     sample_episode = 0
     sample_rall = 0
@@ -156,7 +156,7 @@ def main():
 
         for parent_conn in parent_conns:
             s, r, d, rd, lr = parent_conn.recv()
-            next_obs.append(s[3, :, :, :].reshape([1, 84, 84, 3]))
+            next_obs.append(s[3, :, :, :].reshape([1, 7, 7, 3]))
 
         if len(next_obs) % (num_step * num_worker) == 0:
             next_obs = np.stack(next_obs)
@@ -185,7 +185,7 @@ def main():
                 dones.append(d)
                 real_dones.append(rd)
                 log_rewards.append(lr)
-                next_obs.append(s[3, :, :, :].reshape([1, 84, 84, 3]))
+                next_obs.append(s[3, :, :, :].reshape([1, 7, 7, 3]))
 
             next_states = np.stack(next_states)
             rewards = np.hstack(rewards)
@@ -230,11 +230,11 @@ def main():
         total_int_values.append(value_int)
         # --------------------------------------------------
 
-        total_state = np.stack(total_state).transpose([1, 0, 2, 3, 4, 5]).reshape([-1, 4, 84, 84, 3])
+        total_state = np.stack(total_state).transpose([1, 0, 2, 3, 4, 5]).reshape([-1, 4, 7, 7, 3])
         total_reward = np.stack(total_reward).transpose().clip(-1, 1)
         total_action = np.stack(total_action).transpose().reshape([-1])
         total_done = np.stack(total_done).transpose()
-        total_next_obs = np.stack(total_next_obs).transpose([1, 0, 2, 3, 4, 5]).reshape([-1, 1, 84, 84, 3])
+        total_next_obs = np.stack(total_next_obs).transpose([1, 0, 2, 3, 4, 5]).reshape([-1, 1, 7, 7, 3])
         total_ext_values = np.stack(total_ext_values).transpose()
         total_int_values = np.stack(total_int_values).transpose()
         total_logging_policy = np.vstack(total_policy_np)
