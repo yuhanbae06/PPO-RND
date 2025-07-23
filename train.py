@@ -7,6 +7,7 @@ from torch.multiprocessing import Pipe
 from tensorboardX import SummaryWriter
 
 import numpy as np
+from gym_minigrid.wrappers import RGBImgObsWrapper, RGBImgPartialObsWrapper, ImgObsWrapper
 
 
 def main():
@@ -19,6 +20,9 @@ def main():
         env = BinarySpaceToDiscreteSpaceEnv(gym_super_mario_bros.make(env_id), COMPLEX_MOVEMENT)
     elif env_type == 'atari':
         env = gym.make(env_id)
+    elif env_type == 'minigrid':
+        env = gym.make(env_id)
+        env = ImgObsWrapper(RGBImgPartialObsWrapper(env, tile_size=12))
     else:
         raise NotImplementedError
     input_size = env.observation_space.shape  # 4
@@ -42,7 +46,7 @@ def main():
     predictor_path = 'models/{}.pred'.format(env_id+use_pred_cnn_str+use_tar_cnn_str)
     target_path = 'models/{}.target'.format(env_id+use_pred_cnn_str+use_tar_cnn_str)
 
-    writer = SummaryWriter('./runs/{}'.format(use_pred_cnn_str+use_tar_cnn_str))
+    writer = SummaryWriter()
 
     use_cuda = default_config.getboolean('UseGPU')
     use_gae = default_config.getboolean('UseGAE')
@@ -82,6 +86,8 @@ def main():
         env_type = AtariEnvironment
     elif default_config['EnvType'] == 'mario':
         env_type = MarioEnvironment
+    elif default_config['EnvType'] == 'minigrid':
+        env_type = MiniGridEnvironment
     else:
         raise NotImplementedError
 
