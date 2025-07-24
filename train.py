@@ -47,7 +47,7 @@ def main():
     predictor_path = 'models/{}.pred'.format(env_id+use_pred_cnn_str+use_tar_cnn_str)
     target_path = 'models/{}.target'.format(env_id+use_pred_cnn_str+use_tar_cnn_str)
 
-    writer = SummaryWriter()
+    writer = SummaryWriter("../drive/MyDrive/PPO-RND")
 
     use_cuda = default_config.getboolean('UseGPU')
     use_gae = default_config.getboolean('UseGAE')
