@@ -291,12 +291,13 @@ class CnnActorCriticNetwork(nn.Module):
 
 
 class RNDModel(nn.Module):
-    def __init__(self, input_size, output_size, pred_CNN, tar_CNN, use_LoRA, r_LoRA):
+    def __init__(self, input_size, output_size, pred_CNN, tar_CNN, use_LoRA, r_LoRA, model_width):
         super(RNDModel, self).__init__()
 
         self.input_size = input_size
         self.output_size = output_size
         self.r_LoRA = r_LoRA
+        self.model_width = model_width
 
         feature_output = 4 * 4 * 64
         if pred_CNN:
@@ -346,11 +347,11 @@ class RNDModel(nn.Module):
         else:
             self.predictor = nn.Sequential(
                 Flatten(),
-                nn.Linear(self.input_size[0] * self.input_size[1] * self.input_size[2], 470),
+                nn.Linear(self.input_size[0] * self.input_size[1] * self.input_size[2], self.model_width),
                 nn.ReLU(),
-                nn.Linear(470, 470),
+                nn.Linear(self.model_width, self.model_width),
                 nn.ReLU(),
-                nn.Linear(470, 512)
+                nn.Linear(self.model_width, 512)
             )
 
         if tar_CNN:

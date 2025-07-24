@@ -83,6 +83,7 @@ def main():
     R_LORA = int(default_config['RLoRA'])
     ENV_SEED = int(default_config['EnvSeed'])
     ALPHA = float(default_config['Alpha'])
+    MODEL_WIDTH = int(default_config['ModelWidth'])
 
     agent = RNDAgent
 
@@ -115,7 +116,8 @@ def main():
         use_tar_cnn=use_tar_cnn,
         use_lora=use_lora,
         r_lora = R_LORA,
-        alpha = ALPHA
+        alpha = ALPHA,
+        model_width = MODEL_WIDTH
     )
 
     if is_load_model:
