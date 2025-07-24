@@ -81,7 +81,7 @@ class RNDAgent(object):
         target_next_feature = self.rnd.target(next_obs)
         predict_next_feature = self.alpha * self.rnd.predictor(next_obs)
         intrinsic_reward = (target_next_feature - predict_next_feature).pow(2).sum(1) / 2
-        intrinsic_reward /= self.alpha
+        intrinsic_reward /= self.alpha ** 2
 
         return intrinsic_reward.data.cpu().numpy()
 
@@ -141,7 +141,7 @@ class RNDAgent(object):
                 entropy = m.entropy().mean()
 
                 self.optimizer.zero_grad()
-                loss = actor_loss + 0.5 * critic_loss - self.ent_coef * entropy + forward_loss / self.alpha
+                loss = actor_loss + 0.5 * critic_loss - self.ent_coef * entropy + forward_loss / (self.alpha ** 2)
                 loss.backward()
                 global_grad_norm_(list(self.model.parameters())+list(self.rnd.predictor.parameters()))
                 self.optimizer.step()
