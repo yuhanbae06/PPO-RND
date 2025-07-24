@@ -38,6 +38,7 @@ def main():
 
     use_pred_cnn = default_config.getboolean('UsePredCNN')
     use_tar_cnn = default_config.getboolean('UseTarCNN')
+    use_lora = default_config.getboolean('UseLoRA')
     use_pred_cnn_str = 'CNN' if use_pred_cnn else 'DNN'
     use_tar_cnn_str = 'CNN' if use_tar_cnn else 'DNN'
 
@@ -79,6 +80,7 @@ def main():
     discounted_reward = RewardForwardFilter(int_gamma)
 
     max_update = int(default_config['MaxUpdate'])
+    R_LORA = int(default_config['RLoRA'])
     ENV_SEED = int(default_config['EnvSeed'])
     ALPHA = float(default_config['Alpha'])
 
@@ -111,6 +113,8 @@ def main():
         use_noisy_net=use_noisy_net,
         use_pred_cnn=use_pred_cnn,
         use_tar_cnn=use_tar_cnn,
+        use_lora=use_lora,
+        r_lora = R_LORA,
         alpha = ALPHA
     )
 
