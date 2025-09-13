@@ -9,6 +9,8 @@ from tensorboardX import SummaryWriter
 import numpy as np
 import pickle
 
+from gym_minigrid.wrappers import RGBImgObsWrapper, RGBImgPartialObsWrapper, ImgObsWrapper
+
 
 def main():
     print({section: dict(config[section]) for section in config.sections()})
@@ -21,6 +23,7 @@ def main():
         env = gym.make(env_id)
     elif env_type == 'minigrid':
         env = gym.make(env_id)
+        env = ImgObsWrapper(env)
     else:
         raise NotImplementedError
     input_size = env.observation_space.shape  # 4
@@ -35,6 +38,7 @@ def main():
 
     use_pred_cnn = default_config.getboolean('UsePredCNN')
     use_tar_cnn = default_config.getboolean('UseTarCNN')
+    use_lora = default_config.getboolean('UseLoRA')
     use_pred_cnn_str = 'CNN' if use_pred_cnn else 'DNN'
     use_tar_cnn_str = 'CNN' if use_tar_cnn else 'DNN'
 
@@ -42,7 +46,7 @@ def main():
     predictor_path = 'models/{}.pred'.format(env_id+use_pred_cnn_str+use_tar_cnn_str)
     target_path = 'models/{}.target'.format(env_id+use_pred_cnn_str+use_tar_cnn_str)
 
-    use_cuda = False
+    use_cuda = default_config.getboolean('UseGPU')
     use_gae = default_config.getboolean('UseGAE')
     use_noisy_net = default_config.getboolean('UseNoisyNet')
 
@@ -58,12 +62,25 @@ def main():
     learning_rate = float(default_config['LearningRate'])
     entropy_coef = float(default_config['Entropy'])
     gamma = float(default_config['Gamma'])
+    int_gamma = float(default_config['IntGamma'])
     clip_grad_norm = float(default_config['ClipGradNorm'])
+    ext_coef = float(default_config['ExtCoef'])
+    int_coef = float(default_config['IntCoef'])
 
     sticky_action = False
     action_prob = float(default_config['ActionProb'])
     life_done = default_config.getboolean('LifeDone')
+
+    reward_rms = RunningMeanStd()
+    obs_rms = RunningMeanStd(shape=(1, 1, 7, 7, 3))
+    pre_obs_norm_step = int(default_config['ObsNormStep'])
+    discounted_reward = RewardForwardFilter(int_gamma)
+
+    max_update = int(default_config['MaxUpdate'])
+    R_LORA = int(default_config['RLoRA'])
     ENV_SEED = int(default_config['EnvSeed'])
+    ALPHA = float(default_config['Alpha'])
+    MODEL_WIDTH = int(default_config['ModelWidth'])
 
     agent = RNDAgent
 
@@ -91,7 +108,13 @@ def main():
         ppo_eps=ppo_eps,
         use_cuda=use_cuda,
         use_gae=use_gae,
-        use_noisy_net=use_noisy_net
+        use_noisy_net=use_noisy_net,
+        use_pred_cnn=use_pred_cnn,
+        use_tar_cnn=use_tar_cnn,
+        use_lora=use_lora,
+        r_lora = R_LORA,
+        alpha = ALPHA,
+        model_width = MODEL_WIDTH
     )
 
     print('Loading Pre-trained model....')
