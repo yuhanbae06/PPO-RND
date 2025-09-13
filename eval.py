@@ -19,6 +19,8 @@ def main():
         env = BinarySpaceToDiscreteSpaceEnv(gym_super_mario_bros.make(env_id), COMPLEX_MOVEMENT)
     elif env_type == 'atari':
         env = gym.make(env_id)
+    elif env_type == 'minigrid':
+        env = gym.make(env_id)
     else:
         raise NotImplementedError
     input_size = env.observation_space.shape  # 4
@@ -70,7 +72,7 @@ def main():
     elif default_config['EnvType'] == 'mario':
         env_type = MarioEnvironment
     elif default_config['EnvType'] == 'minigrid':
-        env_type = MiniGridEnvironment # meaningless annotation
+        env_type = MiniGridEnvironment
     else:
         raise NotImplementedError
 
