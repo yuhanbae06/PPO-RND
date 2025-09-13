@@ -6,10 +6,130 @@ from torch.multiprocessing import Pipe
 
 from tensorboardX import SummaryWriter
 
+import cv2
+import itertools
+from typing import Iterable, Tuple, Union
 import numpy as np
 import pickle
 
 from gym_minigrid.wrappers import RGBImgObsWrapper, RGBImgPartialObsWrapper, ImgObsWrapper
+
+import inspect
+
+def symbolic_partial_to_rgb(sym_img, tile_size=16, agent_dir=3):
+    """
+    sym_img: (7, 7, 3) uint8 from ImgObsWrapper (OBJECT_IDX, COLOR_IDX, STATE)
+    returns: (7*tile_size, 7*tile_size, 3) uint8 RGB
+    """
+    # import Grid
+    Grid = None
+    try:
+        from minigrid.core.grid import Grid            # Farama minigrid
+    except Exception:
+        from gym_minigrid.minigrid import Grid         # older gym_minigrid
+
+    enc = sym_img.astype(np.uint8)
+
+    # decode -> grid (handle both return styles)
+    dec = Grid.decode(enc)
+    grid = dec[0] if isinstance(dec, tuple) else dec
+
+    # center of the 7x7 crop is the agent tile; partial obs is rotated so agent faces "right"
+    H, W, _ = enc.shape
+    cx, cy = W // 2, H-1
+
+    # call render with whatever params your version expects
+    try:
+        return grid.render(tile_size, agent_pos=(cx, cy), agent_dir=agent_dir)
+    except TypeError:
+        # try positional args (older gym_minigrid): tile_size, agent_pos, agent_dir, highlight_mask
+        try:
+            return grid.render(tile_size, (cx, cy), agent_dir)
+        except TypeError:
+            try:
+                highlight = np.zeros((W, H), dtype=bool)
+                return grid.render(tile_size, (cx, cy), agent_dir, highlight)
+            except TypeError:
+                # final fallback: introspect signature & build kwargs
+                sig = inspect.signature(grid.render)
+                kwargs = {}
+                for name in sig.parameters:
+                    if name == "tile_size":        kwargs["tile_size"] = tile_size
+                    elif name == "agent_pos":      kwargs["agent_pos"] = (cx, cy)
+                    elif name == "agent_dir":      kwargs["agent_dir"] = agent_dir
+                    elif name == "highlight_mask": kwargs["highlight_mask"] = np.zeros((W, H), dtype=bool)
+                return grid.render(**kwargs)
+
+def images_to_video(
+    frames: Iterable[np.ndarray],
+    out_path: str,
+    fps: int = 30,
+    codec: str = "mp4v",           # 'mp4v'가 가장 호환성 좋음. (H.264는 시스템에 따라 코덱 필요)
+    channels_first: bool = False,  # (C,H,W) 입력이면 True
+    from_rgb: bool = True,         # 프레임이 RGB라면 True (OpenCV는 BGR 기대)
+    output_size: Union[None, Tuple[int, int]] = None,  # (width, height). None이면 첫 프레임 크기 사용
+) -> None:
+    """
+    frames: 0~255 정수(uint8) ndarray들의 이터러블 (각 프레임)
+            지원 형태: (H,W), (H,W,3), (H,W,4), 또는 (C,H,W) (channels_first=True)
+    out_path: 저장할 비디오 경로 (예: 'out.mp4')
+    fps: 초당 프레임 수
+    codec: OpenCV FourCC 코드 ('mp4v', 'XVID', 'avc1' 등)
+    output_size: (W,H). 지정하면 모든 프레임을 해당 크기로 리사이즈
+    """
+    it = iter(frames)
+    try:
+        first = next(it)
+    except StopIteration:
+        raise ValueError("frames 이 비어 있습니다.")
+
+    def _prep(frame: np.ndarray) -> np.ndarray:
+        # dtype 정규화
+        if frame.dtype != np.uint8:
+            frame = np.clip(frame, 0, 255).astype(np.uint8)
+
+        # 채널 순서 보정
+        if channels_first and frame.ndim == 3:
+            frame = np.transpose(frame, (1, 2, 0))  # (C,H,W) -> (H,W,C)
+
+        # 그레이스케일/알파 처리
+        if frame.ndim == 2:
+            frame = cv2.cvtColor(frame, cv2.COLOR_GRAY2BGR)   # 1채널 -> 3채널
+        elif frame.ndim == 3 and frame.shape[2] == 4:
+            frame = frame[:, :, :3]  # 알파 채널 제거
+
+        # 색상 순서 (RGB -> BGR)
+        if from_rgb:
+            frame = cv2.cvtColor(frame, cv2.COLOR_RGB2BGR)
+
+        return frame
+
+    first = _prep(first)
+    if output_size is None:
+        h, w = first.shape[:2]
+        size = (w, h)
+    else:
+        size = (int(output_size[0]), int(output_size[1]))
+        first = cv2.resize(first, size, interpolation=cv2.INTER_AREA)
+
+    writer = cv2.VideoWriter(
+        out_path,
+        cv2.VideoWriter_fourcc(*codec),
+        fps,
+        size,  # (width, height)
+    )
+    if not writer.isOpened():
+        raise RuntimeError("VideoWriter를 열 수 없습니다. 코덱/경로/권한을 확인하세요.")
+
+    writer.write(first)
+
+    for frame in itertools.chain([f for f in it]):  # 남은 프레임들
+        frame = _prep(frame)
+        if (frame.shape[1], frame.shape[0]) != size:
+            frame = cv2.resize(frame, size, interpolation=cv2.INTER_AREA)
+        writer.write(frame)
+
+    writer.release()
 
 
 def main():
@@ -146,6 +266,7 @@ def main():
     rall = 0
     rd = False
     intrinsic_reward_list = []
+    frames = []
     while not rd:
         steps += 1
         actions, value_ext, value_int, policy = agent.get_action(np.float32(states) / 10.)
@@ -161,11 +282,13 @@ def main():
             next_obs = s[3, :, :].reshape([1, 1, 7, 7, 3])
 
         # total reward = int reward + ext Reward
+        frames.append(symbolic_partial_to_rgb(next_obs[0, 0, :, :, :]))
         intrinsic_reward = agent.compute_intrinsic_reward(next_obs)
         intrinsic_reward_list.append(intrinsic_reward)
         states = next_states[:, :, :, :]
 
         if rd:
+            images_to_video(frames, "out.mp4", fps=4)
             intrinsic_reward_list = (intrinsic_reward_list - np.mean(intrinsic_reward_list)) / np.std(
                 intrinsic_reward_list)
             with open('int_reward', 'wb') as f:
