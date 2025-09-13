@@ -282,7 +282,14 @@ def main():
             next_obs = s[3, :, :].reshape([1, 1, 7, 7, 3])
 
         # total reward = int reward + ext Reward
-        frames.append(symbolic_partial_to_rgb(next_obs[0, 0, :, :, :]))
+        # base = env.unwrapped  # 랩퍼 벗기기 (원본 MiniGridEnv)
+        # img: np.ndarray = base.grid.render(
+        #     tile_size=16,
+        #     agent_pos=base.agent_pos,   # 에이전트 미표시는 None
+        #     agent_dir=base.agent_dir,   # 방향 화살표용
+        # )
+        img = symbolic_partial_to_rgb(next_obs[0, 0, :, :, :])
+        frames.append(img)
         intrinsic_reward = agent.compute_intrinsic_reward(next_obs)
         intrinsic_reward_list.append(intrinsic_reward)
         states = next_states[:, :, :, :]
