@@ -70,7 +70,7 @@ def main():
     elif default_config['EnvType'] == 'mario':
         env_type = MarioEnvironment
     elif default_config['EnvType'] == 'minigrid':
-        env_type = MiniGridEnvironment
+        env_type = MiniGridEnvironment # meaningless annotation
     else:
         raise NotImplementedError
 
